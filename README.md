@@ -10,7 +10,11 @@ Introducing, serverless-less web hosting with tinyhost!
 
 Just type:
 
-pip install tinyhost tinyhost mystaticpage.html
+```
+pip install tinyhost
+
+tinyhost mystaticpage.html
+```
 
 Then share the link with your trusted friends and coworkers!
 
