@@ -58,8 +58,8 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int):
 
                 click.echo(f"Found existing datastore section, replacing...")
 
-                get_url, put_url = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
-                script_tag.string = get_datastore_section(datastore_id, get_url, put_url)
+                get_url, post_dict = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
+                script_tag.string = get_datastore_section(datastore_id, get_url, post_dict)
                 found_existing_template = True
                 break
 
@@ -69,9 +69,10 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int):
 
             datastore_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(20))
 
-            get_url, put_url = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
-            new_script.string = get_datastore_section(datastore_id, get_url, put_url)
+            get_url, post_dict = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
+            new_script.string = get_datastore_section(datastore_id, get_url, post_dict)
             head_tag.append(new_script)
+            head_tag.append(soup.new_string("\n"))
 
         html_content = str(soup)
 
@@ -97,21 +98,25 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int):
         click.echo("AWS credentials not found. Please configure them.")
 
 
-def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_put_url: str) -> str:
+def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_post_dict: dict[str, str]) -> str:
     with open(os.path.join(os.path.dirname(__file__), "datastore_template.html"), "r") as f:
         template = f.read()
 
     assert template.find("\"{{ datastore_id }}\"") != -1
     assert template.find("\"{{ presigned_get_url }}\"") != -1
-    assert template.find("\"{{ presigned_put_url }}\"") != -1
+    assert template.find("{{ presigned_post_dict }}") != -1
 
     template = template.replace("{{ datastore_id }}", datastore_id)
     template = template.replace("{{ presigned_get_url }}", presigned_get_url)
-    template = template.replace("{{ presigned_put_url }}", presigned_put_url)
+    template = template.replace("{{ presigned_post_dict }}", json.dumps(presigned_post_dict))
+
+    # Make the format a little prettier
+    template = "\n" + template
+    template = template.replace("\n", "\n    ").rstrip() + "\n"
 
     return template
 
-def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, duration: int) -> tuple[str, str]:
+def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, duration: int) -> tuple[str, dict]:
     object_key = f"{prefix}/{datastore_id}.json"
 
     # Check if object key exists, if not, make one, with the content {}
@@ -130,12 +135,17 @@ def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, du
     get_url = s3_client.generate_presigned_url('get_object',
                                                 Params={'Bucket': bucket, 'Key': object_key},
                                                 ExpiresIn=duration)  
-    
-    put_url = s3_client.generate_presigned_url('put_object',
-                                                Params={'Bucket': bucket, 'Key': object_key, 'ContentType': 'application/json'},
-                                                ExpiresIn=duration) 
-    
-    return get_url, put_url
+
+    post_conditions = [
+        ["content-length-range", 0, 2*1024*1024]
+    ]
+
+    post_dict = s3_client.generate_presigned_post(Bucket=bucket,
+                                                 Key=object_key,
+                                                 Conditions=post_conditions,
+                                                 ExpiresIn=duration)
+                    
+    return get_url, post_dict
 
 def compute_sha1_hash(file_path: str) -> str:
     sha1 = hashlib.sha1()
