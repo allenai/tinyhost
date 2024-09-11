@@ -3,11 +3,15 @@ import os
 import boto3
 import click
 import tempfile
+import secrets
+import string
 import magic
+import json
+import re
 
 from bs4 import BeautifulSoup
 
-from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import NoCredentialsError, ClientError
 
 # Create an S3 client using boto3
 s3_client = boto3.client('s3')
@@ -39,27 +43,35 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int):
         
         soup = BeautifulSoup(html_content, "html.parser")
 
-        new_script = soup.new_tag("script")
-        new_script.string = 'console.log("Hi");'
-        body_tag = soup.find("body")
+        head_tag = soup.find("head")
 
         # Write or update the datastore section
-        if not body_tag:
-            raise click.ClickException("Could not find a <body> tag in your html.")
+        if not head_tag:
+            raise click.ClickException("Could not find a <head> tag in your html, you'll need to add one")
         
-        script_tags = body_tag.find_all("script")
+        script_tags = head_tag.find_all("script")
         found_existing_template = False
 
         for script_tag in script_tags:
             if script_tag.string and "BEGIN TINYHOST DATASTORE SECTION" in script_tag.string:
-                script_tag.string = get_datastore_section("abcd", "", "")
+                datastore_id = re.search(r"const datastoreId = \"(\w+)\";", script_tag.string)[1]
+
+                click.echo(f"Found existing datastore section, replacing...")
+
+                get_url, put_url = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
+                script_tag.string = get_datastore_section(datastore_id, get_url, put_url)
                 found_existing_template = True
                 break
 
         if not found_existing_template:
+            click.echo("Need to write in new script template")
             new_script = soup.new_tag("script")
-            new_script.string = get_datastore_section("abc", "", "")
-            body_tag.append(new_script)
+
+            datastore_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(20))
+
+            get_url, put_url = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
+            new_script.string = get_datastore_section(datastore_id, get_url, put_url)
+            head_tag.append(new_script)
 
         html_content = str(soup)
 
@@ -89,8 +101,6 @@ def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_p
     with open(os.path.join(os.path.dirname(__file__), "datastore_template.html"), "r") as f:
         template = f.read()
 
-    print(template)
-
     assert template.find("\"{{ datastore_id }}\"") != -1
     assert template.find("\"{{ presigned_get_url }}\"") != -1
     assert template.find("\"{{ presigned_put_url }}\"") != -1
@@ -100,6 +110,32 @@ def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_p
     template = template.replace("{{ presigned_put_url }}", presigned_put_url)
 
     return template
+
+def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, duration: int) -> tuple[str, str]:
+    object_key = f"{prefix}/{datastore_id}.json"
+
+    # Check if object key exists, if not, make one, with the content {}
+    # and the right ContentType
+    try:
+        s3_client.head_object(Bucket=bucket, Key=object_key)
+        print(f"Object {object_key} exists.")
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            print(f"datastore {object_key} does not exist. Creating it.")
+            empty_json = json.dumps({})
+            s3_client.put_object(Bucket=bucket, Key=object_key, Body=empty_json, ContentType='application/json')
+        else:
+            raise e
+   
+    get_url = s3_client.generate_presigned_url('get_object',
+                                                Params={'Bucket': bucket, 'Key': object_key},
+                                                ExpiresIn=duration)  
+    
+    put_url = s3_client.generate_presigned_url('put_object',
+                                                Params={'Bucket': bucket, 'Key': object_key, 'ContentType': 'application/json'},
+                                                ExpiresIn=duration) 
+    
+    return get_url, put_url
 
 def compute_sha1_hash(file_path: str) -> str:
     sha1 = hashlib.sha1()

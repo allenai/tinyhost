@@ -12,16 +12,37 @@ const presignedGetUrl = "{{ presigned_get_url }}";
 const presignedPutUrl = "{{ presigned_put_url }}";
 
 
-// Fetch initial state from the S3 file
+// Fetch state from the S3-backed datastore
 async function fetchDatastore() {
     try {
         const response = await fetch(presignedGetUrl);
         if (!response.ok) {
             throw new Error('Failed to fetch the file.');
         }
-        return response.json();
+        return await response.json();
     } catch (error) {
         console.error('Error fetching tinyhost state from S3:', error);
+    }
+}
+
+// Put state back into the datastore
+async function putDatastore(data) {
+    try {
+        const response = await fetch(presignedPutUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),  // Convert the data to JSON format
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload the file.');
+        }
+
+        console.log('Datastore successfully updated.');
+    } catch (error) {
+        console.error('Error uploading tinyhost state to S3:', error);
     }
 }
 
