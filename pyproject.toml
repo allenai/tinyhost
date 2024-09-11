@@ -19,7 +19,8 @@ authors = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-  # Add your own dependencies here
+  "boto3",
+  "click",
 ]
 license = {file = "LICENSE"}
 
@@ -28,6 +29,9 @@ Homepage = "https://github.com/allenai/tinyhost"
 Repository = "https://github.com/allenai/tinyhost"
 Changelog = "https://github.com/allenai/tinyhost/blob/main/CHANGELOG.md"
 # Documentation = "https://tinyhost.readthedocs.io/"
+
+[project.scripts]
+tinyhost = "tinyhost.tinyhost:tinyhost"
 
 [project.optional-dependencies]
 dev = [
