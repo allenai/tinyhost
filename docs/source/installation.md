@@ -1,23 +1,23 @@
 Installation
 ============
 
-**my-package** supports Python >= 3.8.
+**tinyhost** supports Python >= 3.8.
 
 ## Installing with `pip`
 
-**my-package** is available [on PyPI](https://pypi.org/project/my-package/). Just run
+**tinyhost** is available [on PyPI](https://pypi.org/project/tinyhost/). Just run
 
 ```bash
-pip install my-package
+pip install tinyhost
 ```
 
 ## Installing from source
 
-To install **my-package** from source, first clone [the repository](https://github.com/allenai/python-package-template):
+To install **tinyhost** from source, first clone [the repository](https://github.com/allenai/tinyhost):
 
 ```bash
-git clone https://github.com/allenai/python-package-template.git
-cd python-package-template
+git clone https://github.com/allenai/tinyhost.git
+cd tinyhost
 ```
 
 Then run
