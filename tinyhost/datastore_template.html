@@ -14,7 +14,10 @@ const presignedPostDict = {{ presigned_post_dict }};
 // Fetch state from the S3-backed datastore
 async function fetchDatastore() {
     try {
-        const response = await fetch(presignedGetUrl);
+        const response = await fetch(presignedGetUrl, {
+            method: 'GET',
+            cache: 'no-store',
+        });
         if (!response.ok) {
             throw new Error('Failed to fetch the file.');
         }

@@ -85,9 +85,12 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int):
         new_file_name = f"{sha1_hash}{file_extension}"
 
         s3_key = f"{prefix}/{new_file_name}" if prefix else new_file_name
-        upload_file_to_s3(html_file, bucket, s3_key)
+        s3_client.upload_file(html_file, bucket, s3_key,
+                              ExtraArgs={'ContentType': 'text/html'})
 
-        signed_url = create_presigned_url(bucket, s3_key, expiration=duration)
+        signed_url = s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': bucket, 'Key': s3_key},
+                                                    ExpiresIn=duration)
 
         if signed_url:
             click.echo(f"Your file has been uploaded successfully!\nAccess it via the following signed URL:\n\n{signed_url}")
@@ -116,7 +119,9 @@ def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_p
 
     return template
 
+
 def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, duration: int) -> tuple[str, dict]:
+    MAX_DATASTORE_SIZE = 2 * 1024 * 1024 # 2 Megabytes
     object_key = f"{prefix}/{datastore_id}.json"
 
     # Check if object key exists, if not, make one, with the content {}
@@ -137,7 +142,7 @@ def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, du
                                                 ExpiresIn=duration)  
 
     post_conditions = [
-        ["content-length-range", 0, 2*1024*1024]
+        ["content-length-range", 0, MAX_DATASTORE_SIZE]
     ]
 
     post_dict = s3_client.generate_presigned_post(Bucket=bucket,
@@ -147,6 +152,7 @@ def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, du
                     
     return get_url, post_dict
 
+
 def compute_sha1_hash(file_path: str) -> str:
     sha1 = hashlib.sha1()
     with open(file_path, 'rb') as f:
@@ -154,22 +160,6 @@ def compute_sha1_hash(file_path: str) -> str:
             sha1.update(chunk)
     return sha1.hexdigest()
 
-def upload_file_to_s3(file_path: str, bucket: str, s3_key: str):
-    try:
-        s3_client.upload_file(file_path, bucket, s3_key,
-                               ExtraArgs={'ContentType': 'text/html'})
-        click.echo(f"File uploaded successfully to S3: {s3_key}")
-    except Exception as e:
-        raise RuntimeError(f"Failed to upload file to S3: {e}")
-
-def create_presigned_url(bucket: str, object_key: str, expiration: int = 3600) -> str:
-    try:
-        response = s3_client.generate_presigned_url('get_object',
-                                                    Params={'Bucket': bucket, 'Key': object_key},
-                                                    ExpiresIn=expiration)
-        return response
-    except Exception as e:
-        raise RuntimeError(f"Failed to create presigned URL: {e}")
 
 if __name__ == "__main__":
     tinyhost()

@@ -46,12 +46,15 @@
     // Please don't change anything here by hand
     // If it's not working, try running tinyhost again and getting a fresh link
     
-    const datastoreId = "hYIZQKHenDEM6SAFxt1O";
-
+    const datastoreId = "AIeC07ynPA7fgPK9b5Gf";
+  
     // Fetch state from the S3-backed datastore
     async function fetchDatastore() {
         try {
-            const response = await fetch(presignedGetUrl);
+            const response = await fetch(presignedGetUrl, {
+                method: 'GET',
+                cache: 'no-store',
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch the file.');
             }
