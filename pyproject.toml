@@ -21,6 +21,8 @@ requires-python = ">=3.8"
 dependencies = [
   "boto3",
   "click",
+  "python-magic",
+  "beautifulsoup4",
 ]
 license = {file = "LICENSE"}
 
