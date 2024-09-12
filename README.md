@@ -4,7 +4,7 @@ Have you ever wanted to host a webpage? Me too!
 
 Except no one wants to host their own server these days. Too much trouble keeping that thing secure, updated, properly firewalled. It's overkill for hosting just a tiny simple page.
 
-You could just upload a static page to S3, but for a backend you'd need to add serverless product like AWS Lambda functions. But even those would need some place to store your data...
+You could just upload a static page to S3, but for a backend you'd need to add serverless product like AWS Lambda functions. But even then you would need some place to store your data...
 
 Introducing, serverless-less web hosting with `tinyhost`
 
@@ -80,6 +80,13 @@ Options:
   --help              Show this message and exit.
 ```
 
+Valid AWS Credentials must be in your environment. If they are not already, run 
+
+```
+aws configure
+```
+
+If a bucket is not specified, one will be automatically created as `s3://[username]-tinyhost`
 
 ## Motivation
 
