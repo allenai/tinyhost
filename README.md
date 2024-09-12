@@ -107,7 +107,7 @@ To learn more about who specifically contributed to this codebase, see [our cont
 
 <!-- start license -->
 
-**cached-path** is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+**tinyhost** is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 A full copy of the license can be found [on GitHub](https://github.com/allenai/tinyhost/blob/main/LICENSE).
 
 <!-- end license -->
