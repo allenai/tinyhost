@@ -112,7 +112,13 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int, reset: boo
         new_file_name = f"{sha1_hash}{file_extension}"
 
         s3_key = f"{prefix}/{new_file_name}" if prefix else new_file_name
-        s3_client.upload_file(html_file, bucket, s3_key, ExtraArgs={"ContentType": "text/html"})
+
+        # Upload with a long cache, because our content is served via hashed link anyways
+        # This helps when you have large single-page files, ex. with images embedded in them
+        s3_client.upload_file(html_file, bucket, s3_key, 
+                              ExtraArgs={
+                                  "ContentType": "text/html",
+                                  "CacheControl": "max-age=31536000, public"})
 
         signed_url = s3_client.generate_presigned_url(
             "get_object", Params={"Bucket": bucket, "Key": s3_key}, ExpiresIn=duration
