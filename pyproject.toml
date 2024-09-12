@@ -71,7 +71,7 @@ exclude = [
 include-package-data = true
 
 [tool.setuptools.package-data]
-tinyhost = ["py.typed", "datastore_template.html"]
+tinyhost = ["py.typed", "datastore_template.js"]
 
 [tool.setuptools.dynamic]
 version = {attr = "tinyhost.version.VERSION"}

@@ -142,7 +142,7 @@ def generate_new_datastore() -> str:
 
 
 def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_post_dict: dict[str, str]) -> str:
-    with open(os.path.join(os.path.dirname(__file__), "datastore_template.html"), "r") as f:
+    with open(os.path.join(os.path.dirname(__file__), "datastore_template.js"), "r") as f:
         template = f.read()
 
     assert template.find('"{{ datastore_id }}"') != -1
