@@ -47,7 +47,9 @@
     // If it's not working, try running tinyhost again and getting a fresh link
     
     const datastoreId = "ZTpiI4UlstqQtbiUyhQJ";
-
+    const presignedGetUrl = "https://jakep-tinyhost.s3.amazonaws.com//ZTpiI4UlstqQtbiUyhQJ.json?AWSAccessKeyId=AKIASHLPW4FEVZOPGK46&Signature=ZgVclvd%2FZTlEMNYD7%2FxsFXphIgI%3D&Expires=1727971300";
+    const presignedPostDict = {"url": "https://jakep-tinyhost.s3.amazonaws.com/", "fields": {"key": "/ZTpiI4UlstqQtbiUyhQJ.json", "AWSAccessKeyId": "AKIASHLPW4FEVZOPGK46", "policy": "eyJleHBpcmF0aW9uIjogIjIwMjQtMTAtMDNUMTY6MDE6NDBaIiwgImNvbmRpdGlvbnMiOiBbWyJjb250ZW50LWxlbmd0aC1yYW5nZSIsIDAsIDIwOTcxNTJdLCB7ImJ1Y2tldCI6ICJqYWtlcC10aW55aG9zdCJ9LCB7ImtleSI6ICIvWlRwaUk0VWxzdHFRdGJpVXloUUouanNvbiJ9XX0=", "signature": "4dnOkMB8BBjqLqD76yLV1x/lTFM="}};
+    
     
     // Fetch state from the S3-backed datastore
     async function fetchDatastore() {
