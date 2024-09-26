@@ -63,8 +63,8 @@ Datastores are limited to a max of 2MB, and no other permissions in your S3 acco
 ```
 Usage: tinyhost [OPTIONS] HTML_FILE
 
-  Hosts your html_file on an S3 bucket, and gives back a signed URL.
-
+  Hosts your html_file on an S3 bucket, and gives back a signed URL. Can also host Jupyter notebooks.
+  
   Assumes that you have AWS credentials in your environment. Run `aws
   configure` if not.
 
