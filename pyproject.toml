@@ -23,6 +23,7 @@ dependencies = [
   "click",
   "python-magic",
   "beautifulsoup4",
+  "nbconvert"
 ]
 license = {file = "LICENSE"}
 

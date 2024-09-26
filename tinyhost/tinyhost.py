@@ -4,6 +4,7 @@ import os
 import re
 import secrets
 import string
+import tempfile
 
 import boto3
 import click
@@ -50,68 +51,88 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int, reset: boo
             )
 
         # Make sure that your file content is a text/html page to begin with
-        file_extension = os.path.splitext(html_file)[-1]
+        file_basename = os.path.splitext(os.path.basename(html_file))[0].lower()
+        file_extension = os.path.splitext(html_file)[-1].lower()
 
-        if file_extension.lower() not in [".htm", ".html"]:
-            raise click.ClickException("You must use a .htm or .html extension")
+        if file_extension in [".htm", ".html"]:
+            mime = magic.Magic(mime=True)
+            content_type = mime.from_file(html_file)
 
-        mime = magic.Magic(mime=True)
-        content_type = mime.from_file(html_file)
+            if content_type != "text/html":
+                raise click.ClickException("Your file was not detected as text/html.")
 
-        if content_type != "text/html":
-            raise click.ClickException("Your file was not detected as text/html.")
+            with open(html_file, "r") as f:
+                html_content = f.read()
 
-        with open(html_file, "r") as f:
-            html_content = f.read()
+            soup = BeautifulSoup(html_content, "html.parser")
 
-        soup = BeautifulSoup(html_content, "html.parser")
+            head_tag = soup.find("head")
 
-        head_tag = soup.find("head")
+            # Write or update the datastore section
+            if not head_tag:
+                raise click.ClickException("Could not find a <head> tag in your html, you'll need to add one")
 
-        # Write or update the datastore section
-        if not head_tag:
-            raise click.ClickException("Could not find a <head> tag in your html, you'll need to add one")
+            script_tags = head_tag.find_all("script")
+            found_existing_template = False
 
-        script_tags = head_tag.find_all("script")
-        found_existing_template = False
+            for script_tag in script_tags:
+                if script_tag.string and "BEGIN TINYHOST DATASTORE SECTION" in script_tag.string:
+                    if reset:
+                        datastore_id = generate_new_datastore()
+                    else:
+                        datastore_re = re.search(r"const datastoreId = \"(\w+)\";", script_tag.string)
+                        datastore_id = datastore_re[1] if datastore_re else generate_new_datastore()
 
-        for script_tag in script_tags:
-            if script_tag.string and "BEGIN TINYHOST DATASTORE SECTION" in script_tag.string:
-                if reset:
-                    datastore_id = generate_new_datastore()
-                else:
-                    datastore_re = re.search(r"const datastoreId = \"(\w+)\";", script_tag.string)
-                    datastore_id = datastore_re[1] if datastore_re else generate_new_datastore()
+                    click.echo("Found existing datastore section, replacing...")
 
-                click.echo("Found existing datastore section, replacing...")
+                    get_url, post_dict = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
+                    script_tag.string = get_datastore_section(datastore_id, get_url, post_dict)
+                    found_existing_template = True
+                    break
+
+            if not found_existing_template:
+                click.echo("Need to write in new script template")
+                new_script = soup.new_tag("script")
+
+                datastore_id = generate_new_datastore()
 
                 get_url, post_dict = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
-                script_tag.string = get_datastore_section(datastore_id, get_url, post_dict)
-                found_existing_template = True
-                break
+                new_script.string = get_datastore_section(datastore_id, get_url, post_dict)
+                head_tag.append(new_script)
+                head_tag.append(soup.new_string("\n"))
 
-        if not found_existing_template:
-            click.echo("Need to write in new script template")
-            new_script = soup.new_tag("script")
+            html_content = str(soup)
 
-            datastore_id = generate_new_datastore()
+            # Write the datastore back to the file, to help user debug and test if needed
+            with open(html_file, "w") as f:
+                f.write(html_content)
+        elif file_extension in [".ipynb"]:
+            from nbconvert import HTMLExporter
+            from nbformat import read
+            from nbformat import NO_CONVERT
 
-            get_url, post_dict = get_datastore_presigned_urls(bucket, prefix, datastore_id, duration)
-            new_script.string = get_datastore_section(datastore_id, get_url, post_dict)
-            head_tag.append(new_script)
-            head_tag.append(soup.new_string("\n"))
+            with open(html_file, 'r', encoding='utf-8') as f:
+                notebook_content = read(f, NO_CONVERT)
 
-        html_content = str(soup)
+            # Initialize the HTML exporter and specify the template
+            html_exporter = HTMLExporter(template_name='classic')  # Specify template name here
+            html_exporter.embed_images = True
+        
+            # Convert the notebook to HTML using the specified template
+            (body, resources) = html_exporter.from_notebook_node(notebook_content)
 
-        # Write the data back to the file
-        with open(html_file, "w") as f:
-            f.write(html_content)
+            temp_file = tempfile.NamedTemporaryFile("w")
+            temp_file.write(body)
+            temp_file.flush()
+
+            html_file = temp_file.name
+        else:
+            raise click.ClickException("You must use a .htm or .html extension for html pages, or .ipynb for Jupyter notebooks")
 
         sha1_hash = compute_sha1_hash(html_file)
 
         # Keep the original basename, so you can tell what to expect by looking at the URL
-        pathsplits = os.path.splitext(os.path.basename(html_file))
-        new_file_name = f"{pathsplits[0]}-{sha1_hash[:12]}{file_extension}"
+        new_file_name = f"{file_basename}-{sha1_hash[:12]}{file_extension}"
 
         s3_key = f"{prefix}/{new_file_name}" if prefix else new_file_name
 
