@@ -108,16 +108,15 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int, reset: boo
                 f.write(html_content)
         elif file_extension in [".ipynb"]:
             from nbconvert import HTMLExporter
-            from nbformat import read
-            from nbformat import NO_CONVERT
+            from nbformat import NO_CONVERT, read
 
-            with open(html_file, 'r', encoding='utf-8') as f:
+            with open(html_file, "r", encoding="utf-8") as f:
                 notebook_content = read(f, NO_CONVERT)
 
             # Initialize the HTML exporter and specify the template
-            html_exporter = HTMLExporter(template_name='classic')  # Specify template name here
+            html_exporter = HTMLExporter(template_name="classic")  # Specify template name here
             html_exporter.embed_images = True
-        
+
             # Convert the notebook to HTML using the specified template
             (body, resources) = html_exporter.from_notebook_node(notebook_content)
 
@@ -127,7 +126,9 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int, reset: boo
 
             html_file = temp_file.name
         else:
-            raise click.ClickException("You must use a .htm or .html extension for html pages, or .ipynb for Jupyter notebooks")
+            raise click.ClickException(
+                "You must use a .htm or .html extension for html pages, or .ipynb for Jupyter notebooks"
+            )
 
         sha1_hash = compute_sha1_hash(html_file)
 
