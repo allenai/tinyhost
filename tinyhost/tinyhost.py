@@ -109,7 +109,9 @@ def tinyhost(html_file: str, bucket: str, prefix: str, duration: int, reset: boo
 
         sha1_hash = compute_sha1_hash(html_file)
 
-        new_file_name = f"{sha1_hash}{file_extension}"
+        # Keep the original basename, so you can tell what to expect by looking at the URL
+        pathsplits = os.path.splitext(os.path.basename(html_file))
+        new_file_name = f"{pathsplits[0]}-{sha1_hash[:12]}{file_extension}"
 
         s3_key = f"{prefix}/{new_file_name}" if prefix else new_file_name
 
