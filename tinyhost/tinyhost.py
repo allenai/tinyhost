@@ -222,6 +222,7 @@ def compute_sha1_hash(file_path: str) -> str:
     with open(file_path, "rb") as f:
         while chunk := f.read(8192):
             sha1.update(chunk)
+
     return sha1.hexdigest()
 
 
