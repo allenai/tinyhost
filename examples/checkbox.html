@@ -47,8 +47,8 @@
     // If it's not working, try running tinyhost again and getting a fresh link
     
     const datastoreId = "ZTpiI4UlstqQtbiUyhQJ";
-    const presignedGetUrl = "https://tinyhost-tinyhost.s3.eu-west-2.amazonaws.com//ZTpiI4UlstqQtbiUyhQJ.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3QD3W4G7X5KR6Z6D%2F20241113%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20241113T152947Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=84963b6a178aa831351eadc8df50534af314a572c056b1ed83e2b53fad6e5868";
-    const presignedPostDict = {"url": "https://tinyhost-tinyhost.s3.eu-west-2.amazonaws.com/", "fields": {"key": "/ZTpiI4UlstqQtbiUyhQJ.json", "x-amz-algorithm": "AWS4-HMAC-SHA256", "x-amz-credential": "AKIA3QD3W4G7X5KR6Z6D/20241113/eu-west-2/s3/aws4_request", "x-amz-date": "20241113T152947Z", "policy": "eyJleHBpcmF0aW9uIjogIjIwMjQtMTEtMjBUMTU6Mjk6NDdaIiwgImNvbmRpdGlvbnMiOiBbWyJjb250ZW50LWxlbmd0aC1yYW5nZSIsIDAsIDIwOTcxNTJdLCB7ImJ1Y2tldCI6ICJ0aW55aG9zdC10aW55aG9zdCJ9LCB7ImtleSI6ICIvWlRwaUk0VWxzdHFRdGJpVXloUUouanNvbiJ9LCB7IngtYW16LWFsZ29yaXRobSI6ICJBV1M0LUhNQUMtU0hBMjU2In0sIHsieC1hbXotY3JlZGVudGlhbCI6ICJBS0lBM1FEM1c0RzdYNUtSNlo2RC8yMDI0MTExMy9ldS13ZXN0LTIvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDI0MTExM1QxNTI5NDdaIn1dfQ==", "x-amz-signature": "12db469432a44e9dd553f638c5714e982d968ed37da2d300bae6b19ccf9c3b8f"}};
+    const presignedGetUrl = "https://jakep-tinyhost.s3.amazonaws.com//ZTpiI4UlstqQtbiUyhQJ.json?AWSAccessKeyId=AKIASHLPW4FEVZOPGK46&Signature=ZgVclvd%2FZTlEMNYD7%2FxsFXphIgI%3D&Expires=1727971300";
+    const presignedPostDict = {"url": "https://jakep-tinyhost.s3.amazonaws.com/", "fields": {"key": "/ZTpiI4UlstqQtbiUyhQJ.json", "AWSAccessKeyId": "AKIASHLPW4FEVZOPGK46", "policy": "eyJleHBpcmF0aW9uIjogIjIwMjQtMTAtMDNUMTY6MDE6NDBaIiwgImNvbmRpdGlvbnMiOiBbWyJjb250ZW50LWxlbmd0aC1yYW5nZSIsIDAsIDIwOTcxNTJdLCB7ImJ1Y2tldCI6ICJqYWtlcC10aW55aG9zdCJ9LCB7ImtleSI6ICIvWlRwaUk0VWxzdHFRdGJpVXloUUouanNvbiJ9XX0=", "signature": "4dnOkMB8BBjqLqD76yLV1x/lTFM="}};
     
     
     // Fetch state from the S3-backed datastore
