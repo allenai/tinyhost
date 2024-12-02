@@ -44,7 +44,7 @@ def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, res
     if not html_files:
         click.echo(tinyhost.get_help(click.Context(tinyhost)))
         return
-    
+
     if not bucket:
         bucket = run_new_bucket_flow()
 
