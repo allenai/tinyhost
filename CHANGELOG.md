@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.4.11](https://github.com/allenai/tinyhost/releases/tag/v0.4.11) - 2024-12-02
+
+## [v0.4.10](https://github.com/allenai/tinyhost/releases/tag/v0.4.10) - 2024-12-02
+
 ## [v0.4.9](https://github.com/allenai/tinyhost/releases/tag/v0.4.9) - 2024-09-26
 
 - Fixing automatic release system
