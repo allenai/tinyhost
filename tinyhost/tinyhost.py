@@ -5,15 +5,28 @@ import re
 import secrets
 import string
 import tempfile
+from typing import Optional
 
 import boto3
 import click
 import magic
+from botocore.config import Config
 from botocore.exceptions import ClientError, NoCredentialsError
 from bs4 import BeautifulSoup
 
 # Create an S3 client using boto3
-s3_client = boto3.client("s3")
+session = boto3.session.Session()
+aws_region = session.region_name or "us-east-1"
+
+# Create the S3 client with explicit endpoint configuration
+s3_client = boto3.client(
+    "s3",
+    region_name=aws_region,
+    config=Config(
+        signature_version='s3v4',
+        s3={'addressing_style': 'virtual'}
+    )
+)
 
 
 @click.command()
@@ -155,8 +168,34 @@ def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, res
                 ExtraArgs={"ContentType": "text/html", "CacheControl": "max-age=31536000, public"},
             )
 
-            signed_url = s3_client.generate_presigned_url(
-                "get_object", Params={"Bucket": bucket, "Key": s3_key}, ExpiresIn=duration
+        sha1_hash = compute_sha1_hash(html_file)
+
+        # Keep the original basename, so you can tell what to expect by looking at the URL
+        new_file_name = f"{file_basename}-{sha1_hash[:12]}{file_extension}"
+
+        s3_key = f"{prefix}/{new_file_name}" if prefix else new_file_name
+
+        # Upload with a long cache, because our content is served via hashed link anyways
+        # This helps when you have large single-page files, ex. with images embedded in them
+        s3_client.upload_file(
+            html_file,
+            bucket,
+            s3_key,
+            ExtraArgs={"ContentType": "text/html", "CacheControl": "max-age=31536000, public"},
+        )
+
+        signed_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': bucket,
+                'Key': s3_key
+            },
+            ExpiresIn=duration
+        )
+
+        if signed_url:
+            click.echo(
+                f"Your file has been uploaded successfully!\nAccess it via the following signed URL:\n\n{signed_url}"
             )
 
             if signed_url:
@@ -202,8 +241,6 @@ def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, du
     MAX_DATASTORE_SIZE = 2 * 1024 * 1024  # 2 Megabytes
     object_key = f"{prefix}/{datastore_id}.json"
 
-    # Check if object key exists, if not, make one, with the content {}
-    # and the right ContentType
     try:
         s3_client.head_object(Bucket=bucket, Key=object_key)
         print(f"Object {object_key} exists.")
@@ -216,16 +253,23 @@ def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, du
             raise e
 
     get_url = s3_client.generate_presigned_url(
-        "get_object", Params={"Bucket": bucket, "Key": object_key}, ExpiresIn=duration
+        'get_object',
+        Params={
+            'Bucket': bucket,
+            'Key': object_key
+        },
+        ExpiresIn=duration
     )
 
-    # POST is used for the writing side, because it's the only way to ensure a maximum length
     post_conditions = [
         ["content-length-range", 0, MAX_DATASTORE_SIZE],
     ]
 
     post_dict = s3_client.generate_presigned_post(
-        Bucket=bucket, Key=object_key, Conditions=post_conditions, ExpiresIn=duration
+        Bucket=bucket,
+        Key=object_key,
+        Conditions=post_conditions,
+        ExpiresIn=duration
     )
 
     return get_url, post_dict
@@ -240,7 +284,7 @@ def compute_sha1_hash(file_path: str) -> str:
     return sha1.hexdigest()
 
 
-def run_new_bucket_flow() -> str:
+def run_new_bucket_flow() -> Optional[str]:
     sts_client = boto3.client("sts")
     identity = sts_client.get_caller_identity()
     arn = identity["Arn"]
@@ -257,11 +301,25 @@ def run_new_bucket_flow() -> str:
         error_code = e.response["Error"]["Code"]
         if error_code == "404":
             click.echo(f"Bucket {bucket} does not exist, attempting to create")
-
-            s3_client.create_bucket(Bucket=bucket)
-            return bucket
+            
+            try:
+                # For regions other than us-east-1, we need to specify LocationConstraint
+                if aws_region == "us-east-1":
+                    s3_client.create_bucket(Bucket=bucket)
+                else:
+                    s3_client.create_bucket(
+                        Bucket=bucket,
+                        CreateBucketConfiguration={
+                            'LocationConstraint': aws_region
+                        }
+                    )
+                return bucket
+            except ClientError as ce:
+                click.echo(f"Failed to create bucket: {ce}")
+                return None
         else:
-            raise RuntimeError(f"Error checking bucket existence: {e}")
+            click.echo(f"Error checking bucket existence: {e}")
+            return None
 
 
 if __name__ == "__main__":
