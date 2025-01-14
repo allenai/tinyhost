@@ -200,7 +200,9 @@ def get_datastore_section(datastore_id: str, presigned_get_url: str, presigned_p
 
 def get_datastore_presigned_urls(bucket: str, prefix: str, datastore_id: str, duration: int) -> tuple[str, dict]:
     MAX_DATASTORE_SIZE = 2 * 1024 * 1024  # 2 Megabytes
-    object_key = f"{prefix}/{datastore_id}.json"
+
+    # Only prepend `prefix/` if prefix is non-empty
+    object_key = f"{prefix}/{datastore_id}.json" if prefix else f"{datastore_id}.json"
 
     # Check if object key exists, if not, make one, with the content {}
     # and the right ContentType
