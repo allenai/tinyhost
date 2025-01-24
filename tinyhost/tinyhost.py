@@ -44,6 +44,9 @@ def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, res
 
     If you want to refresh a link that has expired, just pass it back in to tinyhost.
     """
+    if isinstance(html_files, str):
+        html_files = [html_files]
+
     if not html_files:
         click.echo(tinyhost.get_help(click.Context(tinyhost)))
         return
