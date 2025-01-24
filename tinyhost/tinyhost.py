@@ -8,8 +8,8 @@ import tempfile
 from typing import Optional
 from urllib.parse import urlparse
 
-import click
 import boto3
+import click
 import magic
 from botocore.exceptions import ClientError, NoCredentialsError
 from bs4 import BeautifulSoup
@@ -18,11 +18,7 @@ s3_client = boto3.client("s3")
 
 
 def tinyhost_main(
-    html_files: list[str],
-    bucket: Optional[str]=None,
-    prefix: str="",
-    duration: int=604800,
-    reset: bool=False
+    html_files: list[str], bucket: Optional[str] = None, prefix: str = "", duration: int = 604800, reset: bool = False
 ):
     """
     Core logic that uploads an HTML file (or .ipynb) to S3 and returns signed URLs.
@@ -47,9 +43,7 @@ def tinyhost_main(
     if not bucket:
         bucket = run_new_bucket_flow()
         if not bucket:
-            raise RuntimeError(
-                "Unable to automatically detect/create an S3 bucket, please specify one using --bucket"
-            )
+            raise RuntimeError("Unable to automatically detect/create an S3 bucket, please specify one using --bucket")
 
     results = []
 
@@ -168,17 +162,12 @@ def tinyhost_main(
                 html_file,
                 bucket,
                 s3_key,
-                ExtraArgs={
-                    "ContentType": "text/html",
-                    "CacheControl": "max-age=31536000, public"
-                },
+                ExtraArgs={"ContentType": "text/html", "CacheControl": "max-age=31536000, public"},
             )
 
             # Generate a signed URL
             signed_url = s3_client.generate_presigned_url(
-                "get_object",
-                Params={"Bucket": bucket, "Key": s3_key},
-                ExpiresIn=duration
+                "get_object", Params={"Bucket": bucket, "Key": s3_key}, ExpiresIn=duration
             )
 
             results.append(signed_url)
@@ -226,19 +215,12 @@ def get_datastore_presigned_urls(bucket, prefix, datastore_id, duration):
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":
             empty_json = json.dumps({})
-            s3_client.put_object(
-                Bucket=bucket,
-                Key=object_key,
-                Body=empty_json,
-                ContentType="application/json"
-            )
+            s3_client.put_object(Bucket=bucket, Key=object_key, Body=empty_json, ContentType="application/json")
         else:
             raise e
 
     get_url = s3_client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": bucket, "Key": object_key},
-        ExpiresIn=duration
+        "get_object", Params={"Bucket": bucket, "Key": object_key}, ExpiresIn=duration
     )
 
     # POST is used for the writing side, because it's the only way to ensure a maximum length
@@ -246,10 +228,7 @@ def get_datastore_presigned_urls(bucket, prefix, datastore_id, duration):
         ["content-length-range", 0, MAX_DATASTORE_SIZE],
     ]
     post_dict = s3_client.generate_presigned_post(
-        Bucket=bucket,
-        Key=object_key,
-        Conditions=post_conditions,
-        ExpiresIn=duration
+        Bucket=bucket, Key=object_key, Conditions=post_conditions, ExpiresIn=duration
     )
     return get_url, post_dict
 
@@ -281,7 +260,6 @@ def run_new_bucket_flow():
             raise RuntimeError(f"Error checking bucket existence: {e}")
 
 
-
 @click.command()
 @click.option("--bucket", help="S3 bucket on which to host your static site")
 @click.option("--prefix", help="S3 bucket prefix to use", default="")
@@ -309,13 +287,7 @@ def tinyhost(html_files, bucket, prefix, duration, reset):
         return
 
     try:
-        urls = tinyhost_main(
-            html_files=html_files,
-            bucket=bucket,
-            prefix=prefix,
-            duration=duration,
-            reset=reset
-        )
+        urls = tinyhost_main(html_files=html_files, bucket=bucket, prefix=prefix, duration=duration, reset=reset)
         for url in urls:
             click.echo(f"\nAccess it at:\n{url}\n")
     except Exception as e:
