@@ -202,8 +202,10 @@ def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, res
                 click.echo(
                     f"Your file '{html_file}' has been uploaded successfully!\nAccess it via the following signed URL:\n\n{signed_url}\n"
                 )
+                return signed_url
             else:
                 click.echo(f"Failed to generate a signed URL for '{html_file}'.")
+                return None
 
         except NoCredentialsError:
             click.echo("AWS credentials not found. Please configure them.")
