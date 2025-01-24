@@ -5,13 +5,13 @@ import re
 import secrets
 import string
 import tempfile
+from urllib.parse import urlparse
 
 import boto3
 import click
 import magic
 from botocore.exceptions import ClientError, NoCredentialsError
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 # Create an S3 client using boto3
 s3_client = boto3.client("s3")
@@ -81,7 +81,7 @@ def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, res
                 file_basename = os.path.splitext(os.path.basename(s3_key))[0].lower()
 
                 # Strip out the final sha hash if possible
-                file_basename = re.sub(r'(-[a-fA-F0-9]{12})?(\.\w+)?$', '', file_basename)
+                file_basename = re.sub(r"(-[a-fA-F0-9]{12})?(\.\w+)?$", "", file_basename)
                 file_extension = os.path.splitext(s3_key)[-1].lower()
 
                 # Download the file from S3 to a local temp file
