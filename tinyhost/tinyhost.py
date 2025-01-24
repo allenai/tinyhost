@@ -11,6 +11,7 @@ import click
 import magic
 from botocore.exceptions import ClientError, NoCredentialsError
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 # Create an S3 client using boto3
 s3_client = boto3.client("s3")
@@ -31,15 +32,17 @@ s3_client = boto3.client("s3")
     default=604800,
     help="Length of time in seconds that this resulting link will work for. Default is 1 week. Max is also 1 week.",
 )
-@click.argument("html_files", nargs=-1, type=click.Path(exists=True))
+@click.argument("html_files", nargs=-1, type=str)
 def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, reset: bool):
     """
-    Hosts your html_files on an S3 bucket, and gives back signed URLs.
+    Hosts your html_files (and ipynb's) on an S3 bucket, and gives back signed URLs.
 
     Assumes that you have AWS credentials in your environment. Run `aws configure` if not.
 
     If you don't pass in an S3 bucket, the script will prompt you to create one, if it's possible.
-    Otherwise, it will use the specified bucket
+    Otherwise, it will use the specified bucket.
+
+    If you want to refresh a link that has expired, just pass it back in to tinyhost.
     """
     if not html_files:
         click.echo(tinyhost.get_help(click.Context(tinyhost)))
@@ -57,9 +60,45 @@ def tinyhost(html_files: list[str], bucket: str, prefix: str, duration: int, res
     for html_file in html_files:
         temp_file_name = None  # Initialize temp_file_name
         try:
-            # Make sure that your file content is a text/html page to begin with
-            file_basename = os.path.splitext(os.path.basename(html_file))[0].lower()
-            file_extension = os.path.splitext(html_file)[-1].lower()
+            # Ex. if you pass an existing tinyhost link
+            # Then, you should try a flow where you download that document, and directly refresh it.
+            # Ex. extract the bucket, in this case jakep-tinyhost, and the path, review_page_0-e09ebadf34a7.html
+            # Then download that file via the boto3 api, update the datastore in it, reupload it
+            if re.match(r"^https?://", html_file, re.IGNORECASE):
+                parsed = urlparse(html_file)
+                # Typical S3 pattern: <bucket_name>.s3[.<region>].amazonaws.com
+                # The path might look like /someprefix/filename.html
+                # We'll do a basic extraction:
+                domain_parts = parsed.netloc.split(".")
+                # Attempt to parse bucket name from domain parts
+                # e.g. my-bucket.s3.amazonaws.com => bucket = my-bucket
+                # e.g. my-bucket.s3.us-east-1.amazonaws.com => bucket = my-bucket
+                # If there's at least one '.', the first part is commonly the bucket name
+                bucket = domain_parts[0]
+                s3_key = parsed.path.lstrip("/")  # remove the leading '/'
+
+                # Make sure that your file content is a text/html page to begin with
+                file_basename = os.path.splitext(os.path.basename(s3_key))[0].lower()
+
+                # Strip out the final sha hash if possible
+                file_basename = re.sub(r'(-[a-fA-F0-9]{12})?(\.\w+)?$', '', file_basename)
+                file_extension = os.path.splitext(s3_key)[-1].lower()
+
+                # Download the file from S3 to a local temp file
+                with tempfile.NamedTemporaryFile("wb", suffix=file_extension, delete=False) as download_tmp:
+                    s3_client.download_fileobj(bucket, s3_key, download_tmp)
+                    downloaded_temp_file = download_tmp.name
+
+                # Now treat 'html_file' as this downloaded file
+                html_file = downloaded_temp_file
+            else:
+                # Make sure the path exists
+                if not os.path.exists(html_file):
+                    raise FileNotFoundError(f"Path {html_file} does not exist")
+
+                # Make sure that your file content is a text/html page to begin with
+                file_basename = os.path.splitext(os.path.basename(html_file))[0].lower()
+                file_extension = os.path.splitext(html_file)[-1].lower()
 
             if file_extension in [".htm", ".html"]:
                 mime = magic.Magic(mime=True)
