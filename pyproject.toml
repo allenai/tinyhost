@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 # See https://setuptools.pypa.io/en/latest/userguide/quickstart.html for more project configuration options.
 name = "tinyhost"
+description = "A tiny way to host static webpages using presigned AWS S3 urls."
 dynamic = ["version"]
 readme = "README.md"
 classifiers = [
